@@ -78,6 +78,8 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
+
+
 # Add developer credit at the bottom
 st.markdown(
     """
