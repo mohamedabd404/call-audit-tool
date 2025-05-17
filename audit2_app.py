@@ -3,7 +3,7 @@ import pandas as pd
 
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
 
-st.title("📞 ReadyMode Call Audit Automation")
+st.title("📞 RES-VA Call Audit Automation")
 
 uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv"])
 
@@ -78,12 +78,14 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
+
+
 # Add developer credit at the bottom
 st.markdown(
     """
     <hr style="border: 1px solid #f0f0f0">
     <div style='text-align: center; color: grey; font-size: small;'>
-        📱 App Developed by <b>Mohamed Abdo</b> - All rights reserved.
+        📱 App Developed by <b>Mohamed Abdo NUMBER 1 </b> - All rights reserved.
     </div>
     """, unsafe_allow_html=True
 )

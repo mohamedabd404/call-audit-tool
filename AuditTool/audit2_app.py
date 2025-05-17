@@ -85,7 +85,7 @@ st.markdown(
     """
     <hr style="border: 1px solid #f0f0f0">
     <div style='text-align: center; color: grey; font-size: small;'>
-        📱 App Developed by <b>Mohamed Abdo</b> - All rights reserved.
+        📱 App Developed by <b>Mohamed Abdo NUMBER 1 </b> - All rights reserved.
     </div>
     """, unsafe_allow_html=True
 )
