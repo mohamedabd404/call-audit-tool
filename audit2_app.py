@@ -78,7 +78,14 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
-
-
+# Add developer credit at the bottom
+st.markdown(
+    """
+    <hr style="border: 1px solid #f0f0f0">
+    <div style='text-align: center; color: grey; font-size: small;'>
+        📱 App Developed by <b>Mohamed Abdo</b> - All rights reserved.
+    </div>
+    """, unsafe_allow_html=True
+)
 
 
