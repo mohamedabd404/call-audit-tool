@@ -11,20 +11,53 @@ uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
-    # Clean column names
+    # Clean column names and Disposition values
     df.columns = df.columns.str.strip()
+    if 'Disposition' in df.columns:
+        df['Disposition'] = df['Disposition'].astype(str).str.strip()
 
-    # Ensure 'Recording Length (Seconds)' is numeric (force errors to NaN)
+    # Try fixing Recording Length (Seconds) if misread as time format
+    if df['Recording Length (Seconds)'].dtype == 'object':
+        try:
+            df['Recording Length (Seconds)'] = pd.to_datetime(
+                df['Recording Length (Seconds)'], format='%I:%M:%S %p', errors='coerce'
+            )
+            df['Recording Length (Seconds)'] = (
+                df['Recording Length (Seconds)'].dt.hour * 3600 +
+                df['Recording Length (Seconds)'].dt.minute * 60 +
+                df['Recording Length (Seconds)'].dt.second
+            )
+        except:
+            pass
+
+    # Ensure 'Recording Length (Seconds)' is numeric
     df['Recording Length (Seconds)'] = pd.to_numeric(df['Recording Length (Seconds)'], errors='coerce')
 
-    # Add separated flags for Voicemail and Dead Call over 15 seconds
+    # Convert to MM:SS format
+    def format_duration(seconds):
+        if pd.isnull(seconds):
+            return ""
+        minutes = int(seconds) // 60
+        seconds = int(seconds) % 60
+        return f"{minutes}:{seconds:02d}"
+
+    df['Recording Length (Formatted)'] = df['Recording Length (Seconds)'].apply(format_duration)
+
+    # Display unique dispositions and recording lengths
+    st.write("### Sample Dispositions and Unique Values")
+    st.write(df['Disposition'].unique())
+
+    st.write("### Sample Recording Lengths")
+    st.write(df['Recording Length (Formatted)'].head())
+    st.write(df['Recording Length (Seconds)'].dtype)
+
+    # Add flags
     df['Flag - Voicemail Over 15 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Voicemail' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
 
     df['Flag - Dead Call Over 15 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Dead Call' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
 
-    # Other flags
     df['Flag - Decision Maker - NYI Under 10 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Decision Maker - NYI' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
 
@@ -34,7 +67,7 @@ if uploaded_file is not None:
     df['Flag - Unknown'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Unknown' else '', axis=1)
 
-    # Agent summary counts
+    # Agent summary
     agent_summary = df.groupby('Agent Name').agg({
         'Flag - Voicemail Over 15 sec': lambda x: (x == 'Check').sum(),
         'Flag - Dead Call Over 15 sec': lambda x: (x == 'Check').sum(),
@@ -51,13 +84,13 @@ if uploaded_file is not None:
     agent_summary['Unknown Over 50 Calls'] = agent_summary.apply(
         lambda row: '⚠️ Check' if row['Unknown Calls'] > 50 else '', axis=1)
 
-    # Overall summary counts
+    # Overall Summary
     total_voicemail = df['Flag - Voicemail Over 15 sec'].value_counts().get('Check', 0)
     total_deadcall = df['Flag - Dead Call Over 15 sec'].value_counts().get('Check', 0)
     total_decision_maker_nyi = df['Flag - Decision Maker - NYI Under 10 sec'].value_counts().get('Check', 0)
     total_wrong_number_under = df['Flag - Wrong Number Under 10 sec'].value_counts().get('Check', 0)
     total_unknown = df['Flag - Unknown'].value_counts().get('Check', 0)
-    total_flagged = df[[
+    total_flagged = df[[ 
         'Flag - Voicemail Over 15 sec',
         'Flag - Dead Call Over 15 sec',
         'Flag - Decision Maker - NYI Under 10 sec',
@@ -75,9 +108,11 @@ if uploaded_file is not None:
     - **Total Flagged Calls:** {total_flagged}
     """)
 
+    # Agent issues
     st.write("### 👥 Agent Summary - Issues Overview")
     st.dataframe(agent_summary)
 
+    # Flagged calls
     flagged_calls = df[
         (df['Flag - Voicemail Over 15 sec'] == 'Check') |
         (df['Flag - Dead Call Over 15 sec'] == 'Check') |
@@ -87,13 +122,14 @@ if uploaded_file is not None:
     ]
 
     st.write("### 📋 Flagged Calls (With Phone Numbers)")
-    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Seconds)',
+    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
                                 'Flag - Voicemail Over 15 sec',
                                 'Flag - Dead Call Over 15 sec',
                                 'Flag - Decision Maker - NYI Under 10 sec',
                                 'Flag - Wrong Number Under 10 sec',
                                 'Flag - Unknown']])
 
+    # Downloads
     st.download_button(
         "⬇️ Download Agent Summary",
         agent_summary.to_csv(index=False).encode('utf-8'),
@@ -110,3 +146,4 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
+
