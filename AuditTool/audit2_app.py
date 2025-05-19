@@ -1,92 +1,56 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
+st.set_page_config(page_title="Audit Tool", layout="wide")
+st.title("📞 Agent Summary - Issues Overview")
 
-st.title("📞 RES-VA Call Audit Automation")
-
-uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv"])
-
+uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 if uploaded_file is not None:
+    # Load and clean data
     df = pd.read_csv(uploaded_file)
+    df.columns = df.columns.str.strip()  # Remove extra spaces from headers
 
-    # Clean column names
-    df.columns = df.columns.str.strip()
+    # Show columns to help identify issues
+    st.write("Detected Columns:", df.columns.tolist())
 
-    # Ensure 'Recording Length ' is numeric (force errors to NaN)
-    df['Recording Length '] = pd.to_numeric(df['Recording Length '], errors='coerce')
+    # Try to access critical columns with safe fallback
+    required_columns = ['Agent Name', 'Recording Length', 'Disposition', 'Duration']
+    for col in required_columns:
+        if col not in df.columns:
+            st.error(f"Missing column: {col}")
+            st.stop()
 
-    # Add flags based on your rules
-    df['Flag - Voicemail/Dead Call Over 15 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] in ['Voicemail', 'Dead Call'] and row['Recording Length '] > 15 else '', axis=1)
+    # Convert time fields safely
+    df['Recording Length'] = pd.to_numeric(df['Recording Length'], errors='coerce')
+    df['Duration'] = pd.to_numeric(df['Duration'], errors='coerce')
 
-    df['Flag - Not Interested Under 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Not Interested' and row['Recording Length '] < 10 else '', axis=1)
+    # Define abuse logic
+    df['Flag - Short Call'] = df['Recording Length'] < 10
+    df['Flag - Voicemail'] = df['Disposition'].str.contains("voicemail", case=False, na=False)
+    df['Flag - Dead Call'] = df['Disposition'].str.contains("dead call", case=False, na=False)
+    df['Flag - Wrong Number'] = df['Disposition'].str.contains("wrong number", case=False, na=False)
+    df['Flag - Unknown'] = df['Disposition'].str.lower().eq("unknown")
 
-    df['Flag - Wrong Number Over 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length '] > 10 else '', axis=1)
-
-    df['Flag - Unknown'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Unknown' else '', axis=1)
-
-    # Agent summary counts
-    agent_summary = df.groupby('Agent Name').agg({
-        'Flag - Voicemail/Dead Call Over 15 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Not Interested Under 10 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Wrong Number Over 10 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Unknown': lambda x: (x == 'Check').sum(),
-        'Disposition': lambda x: (x == 'Unknown').sum(),
+    # Group by agent and summarize flags
+    summary = df.groupby('Agent Name').agg({
+        'Flag - Short Call': 'sum',
+        'Flag - Dead Call': 'sum',
+        'Flag - Voicemail': 'sum',
+        'Flag - Wrong Number': 'sum',
+        'Flag - Unknown': 'sum',
+        'Disposition': lambda x: (x.str.lower() == "not interested").sum(),
     }).reset_index()
 
-    agent_summary.rename(columns={
-        'Disposition': 'Unknown Calls'
-    }, inplace=True)
+    # Rename disposition column to Decision Maker - NYI
+    summary.rename(columns={'Disposition': 'Decision Maker - NYI'}, inplace=True)
 
-    agent_summary['Unknown Over 50 Calls'] = agent_summary.apply(
-        lambda row: '⚠️ Check' if row['Unknown Calls'] > 50 else '', axis=1)
+    # Optional: Add check if unknown calls exceed 50
+    summary['Unknown Over 50 Calls'] = summary['Flag - Unknown'].apply(lambda x: '⚠️ Check' if x > 50 else '')
 
-    st.write("### 👥 Agent Summary - Issues Overview")
-    st.dataframe(agent_summary)
+    st.dataframe(summary)
 
-    flagged_calls = df[
-        (df['Flag - Voicemail/Dead Call Over 15 sec'] == 'Check') |
-        (df['Flag - Not Interested Under 10 sec'] == 'Check') |
-        (df['Flag - Wrong Number Over 10 sec'] == 'Check') |
-        (df['Flag - Unknown'] == 'Check')
-    ]
+    # Optional: Download button
+    csv = summary.to_csv(index=False)
+    st.download_button("Download Summary CSV", csv, "summary.csv", "text/csv")
 
-    st.write("### 📋 Flagged Calls (With Phone Numbers)")
-    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length ',
-                                'Flag - Voicemail/Dead Call Over 15 sec',
-                                'Flag - Not Interested Under 10 sec',
-                                'Flag - Wrong Number Over 10 sec',
-                                'Flag - Unknown']])
-
-    st.download_button(
-        "⬇️ Download Agent Summary",
-        agent_summary.to_csv(index=False).encode('utf-8'),
-        "agent_summary_flags.csv",
-        "text/csv"
-    )
-
-    st.download_button(
-        "⬇️ Download Flagged Calls",
-        flagged_calls.to_csv(index=False).encode('utf-8'),
-        "call_log_with_flags.csv",
-        "text/csv"
-    )
-
-else:
-    st.info("Please upload your exported call log CSV file to start the audit.")
-
-
-# Add developer credit at the bottom
-st.markdown(
-    """
-    <hr style="border: 1px solid #f0f0f0">
-    <div style='text-align: center; color: grey; font-size: small;'>
-        📱 App Developed by <b>Mohamed Abdo Number one ☝🏻 </b> - All rights reserved.
-    </div>
-    """, unsafe_allow_html=True
-)
 
