@@ -13,18 +13,18 @@ if uploaded_file is not None:
     # Clean column names
     df.columns = df.columns.str.strip()
 
-    # Ensure 'Recording Length (Seconds)' is numeric (force errors to NaN)
-    df['Recording Length (Seconds)'] = pd.to_numeric(df['Recording Length (Seconds)'], errors='coerce')
+    # Ensure 'Recording Length ' is numeric (force errors to NaN)
+    df['Recording Length '] = pd.to_numeric(df['Recording Length '], errors='coerce')
 
     # Add flags based on your rules
     df['Flag - Voicemail/Dead Call Over 15 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] in ['Voicemail', 'Dead Call'] and row['Recording Length (Seconds)'] > 15 else '', axis=1)
+        lambda row: 'Check' if row['Disposition'] in ['Voicemail', 'Dead Call'] and row['Recording Length '] > 15 else '', axis=1)
 
     df['Flag - Not Interested Under 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Not Interested' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
+        lambda row: 'Check' if row['Disposition'] == 'Not Interested' and row['Recording Length '] < 10 else '', axis=1)
 
     df['Flag - Wrong Number Over 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length (Seconds)'] > 10 else '', axis=1)
+        lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length '] > 10 else '', axis=1)
 
     df['Flag - Unknown'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Unknown' else '', axis=1)
@@ -56,7 +56,7 @@ if uploaded_file is not None:
     ]
 
     st.write("### 📋 Flagged Calls (With Phone Numbers)")
-    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Seconds)',
+    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length ',
                                 'Flag - Voicemail/Dead Call Over 15 sec',
                                 'Flag - Not Interested Under 10 sec',
                                 'Flag - Wrong Number Over 10 sec',
