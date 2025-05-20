@@ -5,12 +5,14 @@ import pandas as pd
 allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'admins']
 password = '12345resva'
 
+st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
+
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
+if 'username' not in st.session_state:
     st.session_state.username = ""
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
     st.title("🔐 Login to RES-VA Call Audit Tool")
 
     username_input = st.text_input("Username")
@@ -26,31 +28,10 @@ if not st.session_state.authenticated:
             st.error("❌ Invalid username or password.")
     st.stop()
 
-# ========== Enhanced Sidebar ==========
-st.sidebar.markdown("## 👤 User Info")
-st.sidebar.write(f"**Logged in as:** `{st.session_state.username}`")
-
-st.sidebar.markdown("---")
-
-st.sidebar.markdown("## 🧭 Navigation")
-if st.sidebar.button("📄 Audit Tool (Home)"):
-    st.experimental_rerun()  # You can later add navigation logic here
-
-if st.sidebar.button("📊 Agent Summary"):
-    st.warning("Agent Summary page not implemented yet.")
-
-if st.sidebar.button("📝 Call Review"):
-    st.warning("Call Review page not implemented yet.")
-
-st.sidebar.markdown("---")
-
-st.sidebar.markdown("## 🔗 Helpful Links")
-st.sidebar.markdown("[📁 Call Log Template](#)", unsafe_allow_html=True)
-st.sidebar.markdown("[📬 Support](mailto:support@example.com)", unsafe_allow_html=True)
-
-st.sidebar.markdown("---")
-
-if st.sidebar.button("🚪 Logout"):
+# ========== Navigation Sidebar with Logout ==========
+st.sidebar.title("Navigation")
+st.sidebar.write(f"**Logged in as:** {st.session_state.username}")
+if st.sidebar.button("Logout"):
     st.session_state.authenticated = False
     st.session_state.username = ""
     st.experimental_rerun()
@@ -101,8 +82,7 @@ if uploaded_file is not None:
         lambda row: 'Check' if row['Disposition'] == 'Dead Call' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
 
     df['Flag - Decision Maker - NYI Under 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Decision Maker - NYI' and row['Recording Length (Seconds)'] < 10 else '',
-        axis=1)
+        lambda row: 'Check' if row['Disposition'] == 'Decision Maker - NYI' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
 
     df['Flag - Wrong Number Under 10 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
@@ -124,8 +104,7 @@ if uploaded_file is not None:
     df['Call Duration Label'] = df['Recording Length (Seconds)'].apply(classify_duration)
 
     agent_filter = st.selectbox("Filter by Agent", options=["All"] + sorted(df['Agent Name'].dropna().unique().tolist()))
-    disposition_filter = st.selectbox("Filter by Disposition",
-                                      options=["All"] + sorted(df['Disposition'].dropna().unique().tolist()))
+    disposition_filter = st.selectbox("Filter by Disposition", options=["All"] + sorted(df['Disposition'].dropna().unique().tolist()))
 
     filtered_df = df.copy()
     if agent_filter != "All":
@@ -176,27 +155,48 @@ if uploaded_file is not None:
         (filtered_df['Flag - Decision Maker - NYI Under 10 sec'] == 'Check') |
         (filtered_df['Flag - Wrong Number Under 10 sec'] == 'Check') |
         (filtered_df['Flag - Unknown Under 5 sec'] == 'Check')
-        ]
+    ]
 
     st.write("### 📋 Flagged Calls")
     st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
-                               'Call Duration Label',
-                               'Flag - Voicemail Over 15 sec',
-                               'Flag - Dead Call Over 15 sec',
-                               'Flag - Decision Maker - NYI Under 10 sec',
-                               'Flag - Wrong Number Under 10 sec',
-                               'Flag - Unknown Under 5 sec']])
+                                'Call Duration Label',
+                                'Flag - Voicemail Over 15 sec',
+                                'Flag - Dead Call Over 15 sec',
+                                'Flag - Decision Maker - NYI Under 10 sec',
+                                'Flag - Wrong Number Under 10 sec',
+                                'Flag - Unknown Under 5 sec']])
 
-    st.download_button("⬇️ Download Agent Summary",
-                       agent_summary.to_csv(index=False).encode('utf-8'),
-                       "agent_summary_flags.csv", "text/csv")
+    st.download_button("⬇️ Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
+    st.download_button("⬇️ Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
+    st.download_button("⬇️ Download All Filtered Data", filtered_df.to_csv(index=False).encode('utf-8'), "filtered_call_log.csv", "text/csv")
 
-    st.download_button("⬇️ Download Flagged Calls",
-                       flagged_calls.to_csv(index=False).encode('utf-8'),
-                       "call_log_with_flags.csv", "text/csv")
-
-    st.download_button("⬇️ Download All Filtered Data",
-                       filtered_df.to_csv(index=False).encode('utf-8'),
-                       "filtered_call_log.csv", "text/csv")
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
+
+st.markdown(
+    """
+    <div style="
+        position: fixed;
+        bottom: 10px;
+        width: 100%;
+        text-align: center;
+        font-size: 16px;
+        color: white;
+        background: linear-gradient(to right, #00c6ff, #0072ff);
+        padding: 10px 0;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+        animation: fadeIn 2s ease-in-out;
+    ">
+        ✨ App developed by <strong>Mohamed Abdo</strong> ✨
+    </div>
+
+    <style>
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
