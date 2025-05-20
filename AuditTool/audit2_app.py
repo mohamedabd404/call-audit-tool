@@ -1,6 +1,29 @@
 import streamlit as st
 import pandas as pd
 
+# ========== User Login ==========
+allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'admins']
+password = '12345resva'
+
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("🔐 Login to RES-VA Call Audit Tool")
+
+    username_input = st.text_input("Username")
+    password_input = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username_input.strip().lower() in allowed_users and password_input == password:
+            st.session_state.authenticated = True
+            st.success("✅ Login successful. Welcome!")
+            st.experimental_rerun()
+        else:
+            st.error("❌ Invalid username or password.")
+    st.stop()
+
+# ========== Main App ==========
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
 st.title("📞 RES-VA Call Audit Automation")
 
@@ -30,7 +53,6 @@ if uploaded_file is not None:
 
     df['Recording Length (Seconds)'] = pd.to_numeric(df['Recording Length (Seconds)'], errors='coerce')
 
-    # Convert to MM:SS format
     def format_duration(seconds):
         if pd.isnull(seconds):
             return ""
@@ -124,7 +146,6 @@ if uploaded_file is not None:
                                 'Flag - Wrong Number Under 10 sec',
                                 'Flag - Unknown Under 5 sec']])
 
-    # Downloads
     st.download_button(
         "⬇️ Download Agent Summary",
         agent_summary.to_csv(index=False).encode('utf-8'),
@@ -142,7 +163,7 @@ if uploaded_file is not None:
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
 
-# 🌈 Cool developer credit at the bottom
+# 🌈 Footer
 st.markdown(
     """
     <div style="
@@ -158,7 +179,7 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <strong>Mohamed Abdo Number1 ☝🏻 </strong> ✨
+        ✨ App developed by <strong>Mohamed Abdo</strong> ✨
     </div>
 
     <style>
@@ -170,5 +191,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
