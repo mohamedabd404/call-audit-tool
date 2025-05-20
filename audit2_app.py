@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ========== User Login ==========
-allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'admins']
+allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'adestroyer of the galaxy']
 password = '12345resva'
 
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
