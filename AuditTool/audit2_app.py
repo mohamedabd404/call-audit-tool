@@ -1,196 +1,115 @@
 import streamlit as st
 import pandas as pd
+import hashlib
+import io
+from datetime import datetime
 
-# ========== User Login ==========
-allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'admins']
-password = '12345resva'
+# Set page config
+st.set_page_config(page_title="QA Flag Summary", layout="wide")
 
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+# -- Simple login system --
+users = {
+    "teamleader1": hashlib.sha256("12345resva".encode()).hexdigest(),
+    "supervisor1": hashlib.sha256("98765resva".encode()).hexdigest()
+}
 
-if not st.session_state.authenticated:
-    st.title("🔐 Login to RES-VA Call Audit Tool")
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-    username_input = st.text_input("Username")
-    password_input = st.text_input("Password", type="password")
+if not st.session_state.logged_in:
+    st.title("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    login_button = st.button("Login")
 
-    if st.button("Login"):
-        if username_input.strip().lower() in allowed_users and password_input == password:
-            st.session_state.authenticated = True
-            st.success("✅ Login successful. Welcome!")
+    if login_button:
+        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+        if username in users and users[username] == hashed_pw:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success("Login successful!")
             st.experimental_rerun()
         else:
-            st.error("❌ Invalid username or password.")
-    st.stop()
-
-# ========== Main App ==========
-st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
-st.title("📞 RES-VA Call Audit Automation")
-
-uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv"])
-
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    # Clean column names and Disposition values
-    df.columns = df.columns.str.strip()
-    if 'Disposition' in df.columns:
-        df['Disposition'] = df['Disposition'].astype(str).str.strip()
-
-    # Fix Recording Length if misread as time
-    if df['Recording Length (Seconds)'].dtype == 'object':
-        try:
-            df['Recording Length (Seconds)'] = pd.to_datetime(
-                df['Recording Length (Seconds)'], format='%I:%M:%S %p', errors='coerce'
-            )
-            df['Recording Length (Seconds)'] = (
-                df['Recording Length (Seconds)'].dt.hour * 3600 +
-                df['Recording Length (Seconds)'].dt.minute * 60 +
-                df['Recording Length (Seconds)'].dt.second
-            )
-        except:
-            pass
-
-    df['Recording Length (Seconds)'] = pd.to_numeric(df['Recording Length (Seconds)'], errors='coerce')
-
-    def format_duration(seconds):
-        if pd.isnull(seconds):
-            return ""
-        minutes = int(seconds) // 60
-        seconds = int(seconds) % 60
-        return f"{minutes}:{seconds:02d}"
-
-    df['Recording Length (Formatted)'] = df['Recording Length (Seconds)'].apply(format_duration)
-
-    # Flagging logic
-    df['Flag - Voicemail Over 15 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Voicemail' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
-
-    df['Flag - Dead Call Over 15 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Dead Call' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
-
-    df['Flag - Decision Maker - NYI Under 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Decision Maker - NYI' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
-
-    df['Flag - Wrong Number Under 10 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
-
-    df['Flag - Unknown'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Unknown' else '', axis=1)
-
-    df['Flag - Unknown Under 5 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Unknown' and row['Recording Length (Seconds)'] < 5 else '', axis=1)
-
-    # Agent summary
-    agent_summary = df.groupby('Agent Name').agg({
-        'Flag - Voicemail Over 15 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Dead Call Over 15 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Decision Maker - NYI Under 10 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Wrong Number Under 10 sec': lambda x: (x == 'Check').sum(),
-        'Flag - Unknown Under 5 sec': lambda x: (x == 'Check').sum(),
-        'Disposition': lambda x: (x == 'Unknown').sum(),
-    }).reset_index()
-
-    agent_summary.rename(columns={'Disposition': 'Unknown Calls'}, inplace=True)
-
-    agent_summary['Unknown Under 5 sec Over 20'] = agent_summary.apply(
-        lambda row: '⚠️ Check' if row['Flag - Unknown Under 5 sec'] > 20 else '', axis=1)
-
-    agent_summary['Unknown Over 50 Calls'] = agent_summary.apply(
-        lambda row: '⚠️ Check' if row['Unknown Calls'] > 50 else '', axis=1)
-
-    # Overall Summary
-    total_voicemail = df['Flag - Voicemail Over 15 sec'].value_counts().get('Check', 0)
-    total_deadcall = df['Flag - Dead Call Over 15 sec'].value_counts().get('Check', 0)
-    total_decision_maker_nyi = df['Flag - Decision Maker - NYI Under 10 sec'].value_counts().get('Check', 0)
-    total_wrong_number_under = df['Flag - Wrong Number Under 10 sec'].value_counts().get('Check', 0)
-    total_unknown = df['Flag - Unknown'].value_counts().get('Check', 0)
-    total_unknown_5sec = df['Flag - Unknown Under 5 sec'].value_counts().get('Check', 0)
-
-    total_flagged = df[[
-        'Flag - Voicemail Over 15 sec',
-        'Flag - Dead Call Over 15 sec',
-        'Flag - Decision Maker - NYI Under 10 sec',
-        'Flag - Wrong Number Under 10 sec',
-        'Flag - Unknown Under 5 sec'
-    ]].apply(lambda x: 'Check' in x.values, axis=1).sum()
-
-    st.write("### 🚀 Overall Summary")
-    st.info(f"""
-    - **Voicemail Calls Over 15 sec:** {total_voicemail}
-    - **Dead Calls Over 15 sec:** {total_deadcall}
-    - **Decision Maker - NYI Under 10 sec:** {total_decision_maker_nyi}
-    - **Wrong Number Calls Under 10 sec:** {total_wrong_number_under}
-    - **Unknown Calls:** {total_unknown}
-    - **Unknown Calls Under 5 sec:** {total_unknown_5sec}
-    - **Total Flagged Calls:** {total_flagged}
-    """)
-
-    st.write("### 👥 Agent Summary - Issues Overview")
-    st.dataframe(agent_summary)
-
-    # Flagged calls (excluding general unknown, keeping only specific unknown < 5 sec)
-    flagged_calls = df[
-        (df['Flag - Voicemail Over 15 sec'] == 'Check') |
-        (df['Flag - Dead Call Over 15 sec'] == 'Check') |
-        (df['Flag - Decision Maker - NYI Under 10 sec'] == 'Check') |
-        (df['Flag - Wrong Number Under 10 sec'] == 'Check') |
-        (df['Flag - Unknown Under 5 sec'] == 'Check')
-    ]
-
-    st.write("### 📋 Flagged Calls (With Phone Numbers)")
-    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
-                                'Flag - Voicemail Over 15 sec',
-                                'Flag - Dead Call Over 15 sec',
-                                'Flag - Decision Maker - NYI Under 10 sec',
-                                'Flag - Wrong Number Under 10 sec',
-                                'Flag - Unknown Under 5 sec']])
-
-    st.download_button(
-        "⬇️ Download Agent Summary",
-        agent_summary.to_csv(index=False).encode('utf-8'),
-        "agent_summary_flags.csv",
-        "text/csv"
-    )
-
-    st.download_button(
-        "⬇️ Download Flagged Calls",
-        flagged_calls.to_csv(index=False).encode('utf-8'),
-        "call_log_with_flags.csv",
-        "text/csv"
-    )
-
+            st.error("Invalid username or password")
 else:
-    st.info("Please upload your exported call log CSV file to start the audit.")
+    st.sidebar.title("Navigation")
+    st.sidebar.write(f"**Logged in as:** {st.session_state.username}")
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.experimental_rerun()
 
-# 🌈 Footer
-st.markdown(
-    """
-    <div style="
-        position: fixed;
-        bottom: 10px;
-        width: 100%;
-        text-align: center;
-        font-size: 16px;
-        color: white;
-        background: linear-gradient(to right, #00c6ff, #0072ff);
-        padding: 10px 0;
-        border-radius: 8px;
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
-        animation: fadeIn 2s ease-in-out;
-    ">
-        ✨ App developed by <strong>Mohamed Abdo</strong> ✨
-    </div>
+    st.title("QA Flag Summary")
 
-    <style>
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+    uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type="csv")
+
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+
+        required_columns = ["Agent Name", "Disposition", "Recording Link", "Recording Length"]
+        if not all(col in df.columns for col in required_columns):
+            st.error("The uploaded file is missing one or more required columns.")
+        else:
+            def flag_call(length):
+                try:
+                    length = int(length)
+                    if length < 20:
+                        return "Very Short - Check"
+                    elif length < 60:
+                        return "Short - Check"
+                    else:
+                        return "OK"
+                except:
+                    return "Check - Invalid"
+
+            df["Flag"] = df["Recording Length"].apply(flag_call)
+
+            # Filters
+            agent_filter = st.sidebar.selectbox("Select Agent", options=["All"] + sorted(df["Agent Name"].unique().tolist()))
+            disposition_filter = st.sidebar.multiselect("Filter by Disposition", df["Disposition"].unique())
+
+            filtered_df = df.copy()
+            if agent_filter != "All":
+                filtered_df = filtered_df[filtered_df["Agent Name"] == agent_filter]
+            if disposition_filter:
+                filtered_df = filtered_df[filtered_df["Disposition"].isin(disposition_filter)]
+
+            flagged_calls = filtered_df[filtered_df["Flag"].str.contains("Check")]
+
+            # Summary
+            total_calls = len(filtered_df)
+            total_flagged = len(flagged_calls)
+            flag_percentage = (total_flagged / total_calls * 100) if total_calls > 0 else 0
+
+            st.subheader("Summary")
+            st.metric("Total Calls", total_calls)
+            st.metric("Flagged Calls", total_flagged)
+            st.metric("Flag %", f"{flag_percentage:.2f}%")
+
+            if total_flagged > 0:
+                st.subheader("Flagged Calls")
+                styled_df = flagged_calls.style.applymap(
+                    lambda val: "background-color: yellow" if "Check" in str(val) else ""
+                , subset=["Flag"])
+                st.dataframe(styled_df, use_container_width=True)
+
+            st.subheader("All Data with Flags")
+            st.dataframe(filtered_df, use_container_width=True)
+
+            # Export flagged calls
+            st.download_button(
+                label="Download Flagged Calls CSV",
+                data=flagged_calls.to_csv(index=False).encode("utf-8"),
+                file_name="flagged_calls.csv",
+                mime="text/csv"
+            )
+
+            st.download_button(
+                label="Download All Data CSV",
+                data=filtered_df.to_csv(index=False).encode("utf-8"),
+                file_name="all_calls_with_flags.csv",
+                mime="text/csv"
+            )
+
 
 
 
