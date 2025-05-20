@@ -9,8 +9,8 @@ st.set_page_config(page_title="QA Flag Summary", layout="wide")
 
 # -- Simple login system --
 users = {
-    "teamleader1": hashlib.sha256("12345resva".encode()).hexdigest(),
-    "supervisor1": hashlib.sha256("98765resva".encode()).hexdigest()
+    "Abdo": hashlib.sha256("12345resva".encode()).hexdigest(),
+    "ziad": hashlib.sha256("12345resva".encode()).hexdigest()
 }
 
 if "logged_in" not in st.session_state:
