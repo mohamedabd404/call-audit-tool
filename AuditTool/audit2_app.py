@@ -9,6 +9,7 @@ if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
+    st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
     st.title("🔐 Login to RES-VA Call Audit Tool")
 
     username_input = st.text_input("Username")
@@ -24,7 +25,6 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ========== Main App ==========
-st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
 st.title("📞 RES-VA Call Audit Automation")
 
 uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv"])
@@ -62,7 +62,7 @@ if uploaded_file is not None:
 
     df['Recording Length (Formatted)'] = df['Recording Length (Seconds)'].apply(format_duration)
 
-    # Original flagging logic
+    # Flagging logic
     df['Flag - Voicemail Over 15 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Voicemail' and row['Recording Length (Seconds)'] > 15 else '', axis=1)
 
@@ -77,6 +77,28 @@ if uploaded_file is not None:
 
     df['Flag - Unknown Under 5 sec'] = df.apply(
         lambda row: 'Check' if row['Disposition'] == 'Unknown' and row['Recording Length (Seconds)'] < 5 else '', axis=1)
+
+    # Label durations
+    def classify_duration(sec):
+        if pd.isnull(sec):
+            return ""
+        if sec < 5:
+            return "Very Short"
+        elif sec < 15:
+            return "Short"
+        else:
+            return "OK"
+
+    df['Call Duration Label'] = df['Recording Length (Seconds)'].apply(classify_duration)
+
+    agent_filter = st.selectbox("Filter by Agent", options=["All"] + sorted(df['Agent Name'].dropna().unique().tolist()))
+    disposition_filter = st.selectbox("Filter by Disposition", options=["All"] + sorted(df['Disposition'].dropna().unique().tolist()))
+
+    filtered_df = df.copy()
+    if agent_filter != "All":
+        filtered_df = filtered_df[filtered_df['Agent Name'] == agent_filter]
+    if disposition_filter != "All":
+        filtered_df = filtered_df[filtered_df['Disposition'] == disposition_filter]
 
     # Agent summary
     agent_summary = df.groupby('Agent Name').agg({
@@ -115,16 +137,17 @@ if uploaded_file is not None:
     st.write("### 👥 Agent Summary - Issues Overview")
     st.dataframe(agent_summary)
 
-    flagged_calls = df[
-        (df['Flag - Voicemail Over 15 sec'] == 'Check') |
-        (df['Flag - Dead Call Over 15 sec'] == 'Check') |
-        (df['Flag - Decision Maker - NYI Under 10 sec'] == 'Check') |
-        (df['Flag - Wrong Number Under 10 sec'] == 'Check') |
-        (df['Flag - Unknown Under 5 sec'] == 'Check')
+    flagged_calls = filtered_df[
+        (filtered_df['Flag - Voicemail Over 15 sec'] == 'Check') |
+        (filtered_df['Flag - Dead Call Over 15 sec'] == 'Check') |
+        (filtered_df['Flag - Decision Maker - NYI Under 10 sec'] == 'Check') |
+        (filtered_df['Flag - Wrong Number Under 10 sec'] == 'Check') |
+        (filtered_df['Flag - Unknown Under 5 sec'] == 'Check')
     ]
 
     st.write("### 📋 Flagged Calls")
     st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
+                                'Call Duration Label',
                                 'Flag - Voicemail Over 15 sec',
                                 'Flag - Dead Call Over 15 sec',
                                 'Flag - Decision Maker - NYI Under 10 sec',
@@ -133,6 +156,7 @@ if uploaded_file is not None:
 
     st.download_button("⬇️ Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
     st.download_button("⬇️ Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
+    st.download_button("⬇️ Download All Filtered Data", filtered_df.to_csv(index=False).encode('utf-8'), "filtered_call_log.csv", "text/csv")
 
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
@@ -164,7 +188,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 
 
 
