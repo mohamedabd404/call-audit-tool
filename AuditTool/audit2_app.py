@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ========== User Login ==========
-allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'admins']
+allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'destroyer of the galaxy']
 password = '12345resva'
 
 if 'authenticated' not in st.session_state:
