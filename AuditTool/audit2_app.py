@@ -45,7 +45,7 @@ else:
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
 
-        required_columns = ["Agent Name", "Disposition", "Recording Link", "Recording Length"]
+        required_columns = ["Agent Name", "Disposition", "Phone Number", "Recording Length (Seconds)"]
         if not all(col in df.columns for col in required_columns):
             st.error("The uploaded file is missing one or more required columns.")
         else:
@@ -61,7 +61,7 @@ else:
                 except:
                     return "Check - Invalid"
 
-            df["Flag"] = df["Recording Length"].apply(flag_call)
+            df["Flag"] = df["Recording Length (Seconds)"].apply(flag_call)
 
             # Filters
             agent_filter = st.sidebar.selectbox("Select Agent", options=["All"] + sorted(df["Agent Name"].unique().tolist()))
