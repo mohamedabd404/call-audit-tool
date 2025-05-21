@@ -17,6 +17,7 @@ if 'username' not in st.session_state:
 def logout():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
+    st.experimental_rerun()
 
 # Login form
 if not st.session_state.authenticated:
