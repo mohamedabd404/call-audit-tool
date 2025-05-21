@@ -5,6 +5,9 @@ import pandas as pd
 allowed_users = ['Aya', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali']
 password = '12345resva'
 
+# Normalize allowed users to lowercase for consistent login check
+allowed_users_lower = [user.lower() for user in allowed_users]
+
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
 
 if 'authenticated' not in st.session_state:
@@ -19,7 +22,7 @@ if not st.session_state.authenticated:
     password_input = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username_input.strip().lower() in allowed_users and password_input == password:
+        if username_input.strip().lower() in allowed_users_lower and password_input == password:
             st.session_state.authenticated = True
             st.session_state.username = username_input.strip().lower()
             st.success("✅ Login successful. Welcome!")
@@ -162,7 +165,7 @@ if uploaded_file is not None:
     ]
 
     st.write("### 📋 Flagged Calls")
-    st.dataframe(flagged_calls[[
+    st.dataframe(flagged_calls[[ 
         'Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
         'Call Duration Label',
         'Flag - Voicemail Over 15 sec',
