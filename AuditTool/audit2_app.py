@@ -194,7 +194,7 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <a href="https://your-portfolio-link.com" target="_blank" style="color: white; text-decoration: underline;" class="dev-link"><strong>Mohamed Abdo</strong></a> ✨
+        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
     </div>
 
     <style>

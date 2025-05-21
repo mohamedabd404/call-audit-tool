@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ========== User Login ==========
-allowed_users = ['aya', 'nour', 'zizi', 'danial', 'abdo', 'destroyer of the galaxy']
+allowed_users = ['Aya', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali']
 password = '12345resva'
 
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
@@ -194,7 +194,7 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <a href="https://your-portfolio-link.com" target="_blank" style="color: white; text-decoration: underline;" class="dev-link"><strong>Mohamed Abdo</strong></a> ✨
+        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
     </div>
 
     <style>
