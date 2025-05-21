@@ -28,7 +28,7 @@ if not st.session_state.authenticated:
             st.error("❌ Invalid username or password.")
     st.stop()
 
-# ========== Navigation Sidebar with Logout ==========
+# ========== Navigation Sidebar with Logout and Filters ==========
 st.sidebar.title("Navigation")
 st.sidebar.write(f"**Logged in as:** {st.session_state.username}")
 if st.sidebar.button("Logout"):
@@ -36,10 +36,10 @@ if st.sidebar.button("Logout"):
     st.session_state.username = ""
     st.experimental_rerun()
 
-# ========== Main App ==========
-st.title("📞 RES-VA Call Audit Automation")
+st.sidebar.markdown("---")
+st.sidebar.title("Filters")
 
-uploaded_file = st.file_uploader("Upload your exported Call Log CSV", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload your exported Call Log CSV", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -103,8 +103,12 @@ if uploaded_file is not None:
 
     df['Call Duration Label'] = df['Recording Length (Seconds)'].apply(classify_duration)
 
-    agent_filter = st.selectbox("Filter by Agent", options=["All"] + sorted(df['Agent Name'].dropna().unique().tolist()))
-    disposition_filter = st.selectbox("Filter by Disposition", options=["All"] + sorted(df['Disposition'].dropna().unique().tolist()))
+    # --- Filters in sidebar ---
+    agent_options = ["All"] + sorted(df['Agent Name'].dropna().unique().tolist())
+    disposition_options = ["All"] + sorted(df['Disposition'].dropna().unique().tolist())
+
+    agent_filter = st.sidebar.selectbox("Filter by Agent", options=agent_options)
+    disposition_filter = st.sidebar.selectbox("Filter by Disposition", options=disposition_options)
 
     filtered_df = df.copy()
     if agent_filter != "All":
@@ -128,7 +132,7 @@ if uploaded_file is not None:
     total_wrong_number_under = df['Flag - Wrong Number Under 10 sec'].value_counts().get('Check', 0)
     total_unknown_5sec = df['Flag - Unknown Under 5 sec'].value_counts().get('Check', 0)
 
-    total_flagged = df[[
+    total_flagged = df[[ 
         'Flag - Voicemail Over 15 sec',
         'Flag - Dead Call Over 15 sec',
         'Flag - Decision Maker - NYI Under 10 sec',
@@ -158,13 +162,15 @@ if uploaded_file is not None:
     ]
 
     st.write("### 📋 Flagged Calls")
-    st.dataframe(flagged_calls[['Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
-                                'Call Duration Label',
-                                'Flag - Voicemail Over 15 sec',
-                                'Flag - Dead Call Over 15 sec',
-                                'Flag - Decision Maker - NYI Under 10 sec',
-                                'Flag - Wrong Number Under 10 sec',
-                                'Flag - Unknown Under 5 sec']])
+    st.dataframe(flagged_calls[[
+        'Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
+        'Call Duration Label',
+        'Flag - Voicemail Over 15 sec',
+        'Flag - Dead Call Over 15 sec',
+        'Flag - Decision Maker - NYI Under 10 sec',
+        'Flag - Wrong Number Under 10 sec',
+        'Flag - Unknown Under 5 sec'
+    ]])
 
     st.download_button("⬇️ Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
     st.download_button("⬇️ Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
@@ -188,13 +194,18 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <strong>Mohamed Abdo</strong> ✨
+        ✨ App developed by <a href="https://your-portfolio-link.com" target="_blank" style="color: white; text-decoration: underline;" class="dev-link"><strong>Mohamed Abdo</strong></a> ✨
     </div>
 
     <style>
     @keyframes fadeIn {
         0% { opacity: 0; transform: translateY(20px); }
         100% { opacity: 1; transform: translateY(0); }
+    }
+    a.dev-link:hover {
+        color: #ffeb3b !important;
+        text-decoration: none !important;
+        cursor: pointer;
     }
     </style>
     """,
