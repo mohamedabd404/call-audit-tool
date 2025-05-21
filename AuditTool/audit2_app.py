@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Allowed users and password
-allowed_users = ['Aya', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali']
+allowed_users = ['el dlo3a', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali']
 password = '12345resva'
 allowed_users_lower = [user.lower() for user in allowed_users]
 
