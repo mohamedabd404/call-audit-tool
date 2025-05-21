@@ -1,20 +1,25 @@
 import streamlit as st
 import pandas as pd
 
-# ========== User Login ==========
+# Allowed users and password
 allowed_users = ['Aya', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali']
 password = '12345resva'
-
-# Normalize allowed users to lowercase for consistent login check
 allowed_users_lower = [user.lower() for user in allowed_users]
 
 st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
 
+# Initialize session state variables if not present
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'username' not in st.session_state:
     st.session_state.username = ""
 
+def logout():
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    st.experimental_rerun()
+
+# Login form
 if not st.session_state.authenticated:
     st.title("🔐 Login to RES-VA Call Audit Tool")
 
@@ -30,6 +35,19 @@ if not st.session_state.authenticated:
         else:
             st.error("❌ Invalid username or password.")
     st.stop()
+
+# Authenticated user interface
+st.sidebar.title("Navigation")
+st.sidebar.write(f"**Logged in as:** {st.session_state.username}")
+
+if st.sidebar.button("Logout"):
+    logout()
+
+# The rest of your app code goes here ...
+st.write("Welcome to the app! You are logged in.")
+
+# You can add your upload and audit tool code here as before.
+
 
 # ========== Navigation Sidebar with Logout and Filters ==========
 st.sidebar.title("Navigation")
