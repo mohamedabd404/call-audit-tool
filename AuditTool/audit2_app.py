@@ -94,13 +94,13 @@ if uploaded_file is not None:
         lambda row: 'Check' if row['Disposition'] == 'Wrong Number' and row['Recording Length (Seconds)'] < 10 else '', axis=1)
 
     df['Flag - Unknown Under 5 sec'] = df.apply(
-        lambda row: 'Check' if row['Disposition'] == 'Unknown' and row['Recording Length (Seconds)'] < 5 else '', axis=1)
+        lambda row: 'Check' if row['Disposition'] == 'Unknown' and row['Recording Length (Seconds)'] < 25 else '', axis=1)
 
     # Label durations
     def classify_duration(sec):
         if pd.isnull(sec):
             return ""
-        if sec < 5:
+        if sec > 25:
             return "Very Short"
         elif sec < 15:
             return "Short"
@@ -129,7 +129,7 @@ if uploaded_file is not None:
             'Flag - Dead Call Over 15 sec': lambda x: (x == 'Check').sum(),
             'Flag - Decision Maker - NYI Under 10 sec': lambda x: (x == 'Check').sum(),
             'Flag - Wrong Number Under 10 sec': lambda x: (x == 'Check').sum(),
-            'Flag - Unknown Under 5 sec': lambda x: (x == 'Check').sum(),
+            'Flag - Unknown over 25 sec': lambda x: (x == 'Check').sum(),
         }).reset_index()
     else:
         agent_summary = pd.DataFrame()
@@ -144,14 +144,14 @@ if uploaded_file is not None:
     total_deadcall = get_flag_count('Flag - Dead Call Over 15 sec')
     total_decision_maker_nyi = get_flag_count('Flag - Decision Maker - NYI Under 10 sec')
     total_wrong_number_under = get_flag_count('Flag - Wrong Number Under 10 sec')
-    total_unknown_5sec = get_flag_count('Flag - Unknown Under 5 sec')
+    total_unknown_5sec = get_flag_count('Flag - Unknown over 25 sec')
 
     total_flagged = df[[
         'Flag - Voicemail Over 15 sec',
         'Flag - Dead Call Over 15 sec',
         'Flag - Decision Maker - NYI Under 10 sec',
         'Flag - Wrong Number Under 10 sec',
-        'Flag - Unknown Under 5 sec'
+        'Flag - Unknown over 25 sec'
     ]].apply(lambda x: 'Check' in x.values, axis=1).sum() if not df.empty else 0
 
     st.write("### 🚀 Overall Summary")
@@ -160,7 +160,7 @@ if uploaded_file is not None:
     - **Dead Calls Over 15 sec:** {total_deadcall}
     - **Decision Maker - NYI Under 10 sec:** {total_decision_maker_nyi}
     - **Wrong Number Calls Under 10 sec:** {total_wrong_number_under}
-    - **Unknown Calls Under 5 sec:** {total_unknown_5sec}
+    - **Unknown Calls over 25 sec:** {total_unknown_5sec}
     - **Total Flagged Calls:** {total_flagged}
     """)
 
@@ -175,7 +175,7 @@ if uploaded_file is not None:
         (filtered_df.get('Flag - Dead Call Over 15 sec', '') == 'Check') |
         (filtered_df.get('Flag - Decision Maker - NYI Under 10 sec', '') == 'Check') |
         (filtered_df.get('Flag - Wrong Number Under 10 sec', '') == 'Check') |
-        (filtered_df.get('Flag - Unknown Under 5 sec', '') == 'Check')
+        (filtered_df.get('Flag - Unknown over 25 sec', '') == 'Check')
     ]
 
     st.write("### 📋 Flagged Calls")
@@ -187,7 +187,7 @@ if uploaded_file is not None:
             'Flag - Dead Call Over 15 sec',
             'Flag - Decision Maker - NYI Under 10 sec',
             'Flag - Wrong Number Under 10 sec',
-            'Flag - Unknown Under 5 sec'
+            'Flag - Unknown over 25 sec'
         ]])
     else:
         st.write("No flagged calls found for the selected filters.")
