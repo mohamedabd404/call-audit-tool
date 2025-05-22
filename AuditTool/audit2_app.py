@@ -1,6 +1,23 @@
 import streamlit as st
 import pandas as pd
 
+# Google Analytics GA4 Measurement ID
+GA4_MEASUREMENT_ID = "G-X73LCNERD6"
+
+ga4_code = f"""
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{GA4_MEASUREMENT_ID}');
+</script>
+"""
+
+# Embed GA4 tracking code
+st.markdown(ga4_code, unsafe_allow_html=True)
+
 # Allowed users and password
 allowed_users = ['el dlo3a', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali' , 'Ahmed Hanafy' ]
 password = '12345resva'
@@ -146,7 +163,7 @@ if uploaded_file is not None:
     total_wrong_number_under = get_flag_count('Flag - Wrong Number Under 10 sec')
     total_unknown_5sec = get_flag_count('Flag - Unknown Under 5 sec')
 
-    total_flagged = df[[
+    total_flagged = df[[ 
         'Flag - Voicemail Over 15 sec',
         'Flag - Dead Call Over 15 sec',
         'Flag - Decision Maker - NYI Under 10 sec',
@@ -179,59 +196,3 @@ if uploaded_file is not None:
     ]
 
     st.write("### 📋 Flagged Calls")
-    if not flagged_calls.empty:
-        st.dataframe(flagged_calls[[
-            'Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
-            'Call Duration Label',
-            'Flag - Voicemail Over 15 sec',
-            'Flag - Dead Call Over 15 sec',
-            'Flag - Decision Maker - NYI Under 10 sec',
-            'Flag - Wrong Number Under 10 sec',
-            'Flag - Unknown Under 5 sec'
-        ]])
-    else:
-        st.write("No flagged calls found for the selected filters.")
-
-    # Download buttons
-    if not agent_summary.empty:
-        st.download_button("⬇️ Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
-    if not flagged_calls.empty:
-        st.download_button("⬇️ Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
-    if not filtered_df.empty:
-        st.download_button("⬇️ Download All Filtered Data", filtered_df.to_csv(index=False).encode('utf-8'), "filtered_call_log.csv", "text/csv")
-else:
-    st.info("Please upload your exported call log CSV file to start the audit.")
-
-
-st.markdown(
-    """
-    <div style="
-        position: fixed;
-        bottom: 10px;
-        width: 100%;
-        text-align: center;
-        font-size: 16px;
-        color: white;
-        background: linear-gradient(to right, #00c6ff, #0072ff);
-        padding: 10px 0;
-        border-radius: 8px;
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
-        animation: fadeIn 2s ease-in-out;
-    ">
-        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
-    </div>
-
-    <style>
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-    a.dev-link:hover {
-        color: #ffeb3b !important;
-        text-decoration: none !important;
-        cursor: pointer;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
