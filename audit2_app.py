@@ -236,7 +236,7 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
+        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong> ✨
     </div>
 
     <style>
