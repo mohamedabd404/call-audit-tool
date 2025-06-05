@@ -188,12 +188,18 @@ if uploaded_file is not None:
     else:
         st.write("No agent data to show.")
 
+    flag_cols = [
+        'Flag - Voicemail Over 15 sec',
+        'Flag - Dead Call Over 15 sec',
+        'Flag - Decision Maker - NYI Under 10 sec',
+        'Flag - Wrong Number Under 10 sec',
+        'Flag - Unknown Under 5 sec'
+    ]
+
+    existing_flag_cols = [col for col in flag_cols if col in filtered_df.columns]
+
     flagged_calls = filtered_df[
-        (filtered_df.get('Flag - Voicemail Over 15 sec', '') == 'Check') |
-        (filtered_df.get('Flag - Dead Call Over 15 sec', '') == 'Check') |
-        (filtered_df.get('Flag - Decision Maker - NYI Under 10 sec', '') == 'Check') |
-        (filtered_df.get('Flag - Wrong Number Under 10 sec', '') == 'Check') |
-        (filtered_df.get('Flag - Unknown Under 5 sec', '') == 'Check')
+        filtered_df[existing_flag_cols].eq('Check').any(axis=1)
     ]
 
     st.write("### 📋 Flagged Calls")
