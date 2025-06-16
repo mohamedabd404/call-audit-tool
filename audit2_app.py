@@ -1,30 +1,12 @@
 import streamlit as st
 import pandas as pd
-import streamlit.components.v1 as components  # 👈 Add this line
 
 # Allowed users and password
 allowed_users = ['el dlo3a', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali' , 'Ahmed Hanafy' ]
 password = '12345resva'
 allowed_users_lower = [user.lower() for user in allowed_users]
 
-st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
-
-
-# Google Analytics GA4 Measurement ID
-GA4_MEASUREMENT_ID = "G-X73LCNERD6"
-
-ga4_code = f"""
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
-  gtag('js', new Date());
-  gtag('config', '{GA4_MEASUREMENT_ID}');
-</script>
-"""
-
-st.markdown(ga4_code, unsafe_allow_html=True)
+st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="centerd")
 
 # Initialize session state variables if not present
 if 'authenticated' not in st.session_state:
@@ -188,18 +170,12 @@ if uploaded_file is not None:
     else:
         st.write("No agent data to show.")
 
-    flag_cols = [
-        'Flag - Voicemail Over 15 sec',
-        'Flag - Dead Call Over 15 sec',
-        'Flag - Decision Maker - NYI Under 10 sec',
-        'Flag - Wrong Number Under 10 sec',
-        'Flag - Unknown Under 5 sec'
-    ]
-
-    existing_flag_cols = [col for col in flag_cols if col in filtered_df.columns]
-
     flagged_calls = filtered_df[
-        filtered_df[existing_flag_cols].eq('Check').any(axis=1)
+        (filtered_df.get('Flag - Voicemail Over 15 sec', '') == 'Check') |
+        (filtered_df.get('Flag - Dead Call Over 15 sec', '') == 'Check') |
+        (filtered_df.get('Flag - Decision Maker - NYI Under 10 sec', '') == 'Check') |
+        (filtered_df.get('Flag - Wrong Number Under 10 sec', '') == 'Check') |
+        (filtered_df.get('Flag - Unknown Under 5 sec', '') == 'Check')
     ]
 
     st.write("### 📋 Flagged Calls")
@@ -242,7 +218,7 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong> ✨
+        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
     </div>
 
     <style>
