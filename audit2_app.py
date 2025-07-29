@@ -1,12 +1,31 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Allowed users and password
 allowed_users = ['el dlo3a', 'Nour', 'zizi', 'danial', 'Abdo', 'destroyer of the galaxy', 'Ali' , 'Ahmed Hanafy' ]
 password = '12345resva'
 allowed_users_lower = [user.lower() for user in allowed_users]
 
-st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="centerd")
+st.set_page_config(page_title="ReadyMode Call Audit Tool", layout="wide")
+
+# Google Analytics GA4 Measurement ID
+GA4_MEASUREMENT_ID = "G-X73LCNERD6"
+
+ga4_code = f"""
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{GA4_MEASUREMENT_ID}');
+</script>
+"""
+
+st.markdown(ga4_code, unsafe_allow_html=True)
 
 # Initialize session state variables if not present
 if 'authenticated' not in st.session_state:
@@ -21,7 +40,7 @@ def logout():
 
 # Login form
 if not st.session_state.authenticated:
-    st.title("🔐 Login to RES-VA Call Audit Tool")
+    st.title("Login to RES-VA Call Audit Tool")
 
     username_input = st.text_input("Username")
     password_input = st.text_input("Password", type="password")
@@ -30,9 +49,9 @@ if not st.session_state.authenticated:
         if username_input.strip().lower() in allowed_users_lower and password_input == password:
             st.session_state.authenticated = True
             st.session_state.username = username_input.strip().lower()
-            st.success("✅ Login successful. Welcome!")
+            st.success("Login successful. Welcome!")
         else:
-            st.error("❌ Invalid username or password.")
+            st.error("Invalid username or password.")
     st.stop()
 
 # Authenticated user interface
@@ -130,7 +149,16 @@ if uploaded_file is not None:
             'Flag - Decision Maker - NYI Under 10 sec': lambda x: (x == 'Check').sum(),
             'Flag - Wrong Number Under 10 sec': lambda x: (x == 'Check').sum(),
             'Flag - Unknown Under 5 sec': lambda x: (x == 'Check').sum(),
+            'Disposition': lambda x: (x == 'Dead Call').sum(),  # Total Dead Calls
         }).reset_index()
+        
+        # Add Total Unknown Calls column
+        agent_summary['Total Unknown Calls'] = df.groupby('Agent Name')['Disposition'].apply(
+            lambda x: (x == 'Unknown').sum()
+        ).reset_index(0, drop=True)
+        
+        # Rename the Disposition column to Total Dead Calls
+        agent_summary = agent_summary.rename(columns={'Disposition': 'Total Dead Calls'})
     else:
         agent_summary = pd.DataFrame()
 
@@ -154,7 +182,8 @@ if uploaded_file is not None:
         'Flag - Unknown Under 5 sec'
     ]].apply(lambda x: 'Check' in x.values, axis=1).sum() if not df.empty else 0
 
-    st.write("### 🚀 Overall Summary")
+    st.write("### Overall Summary")
+    
     st.info(f"""
     - **Voicemail Calls Over 15 sec:** {total_voicemail}
     - **Dead Calls Over 15 sec:** {total_deadcall}
@@ -164,7 +193,7 @@ if uploaded_file is not None:
     - **Total Flagged Calls:** {total_flagged}
     """)
 
-    st.write("### 👥 Agent Summary - Issues Overview")
+    st.write("### Agent Summary - Issues Overview")
     if not agent_summary.empty:
         st.dataframe(agent_summary)
     else:
@@ -178,27 +207,92 @@ if uploaded_file is not None:
         (filtered_df.get('Flag - Unknown Under 5 sec', '') == 'Check')
     ]
 
-    st.write("### 📋 Flagged Calls")
+    st.write("### Flagged Calls")
+    
     if not flagged_calls.empty:
-        st.dataframe(flagged_calls[[
-            'Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
-            'Call Duration Label',
-            'Flag - Voicemail Over 15 sec',
-            'Flag - Dead Call Over 15 sec',
-            'Flag - Decision Maker - NYI Under 10 sec',
-            'Flag - Wrong Number Under 10 sec',
-            'Flag - Unknown Under 5 sec'
-        ]])
+        # Create columns for flagged calls data and pie chart
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.dataframe(flagged_calls[[
+                'Agent Name', 'Phone Number', 'Disposition', 'Recording Length (Formatted)',
+                'Call Duration Label',
+                'Flag - Voicemail Over 15 sec',
+                'Flag - Dead Call Over 15 sec',
+                'Flag - Decision Maker - NYI Under 10 sec',
+                'Flag - Wrong Number Under 10 sec',
+                'Flag - Unknown Under 5 sec'
+            ]])
+        
+        with col2:
+            # Create pie chart for total calls by disposition from the full filtered dataset
+            disposition_counts = filtered_df['Disposition'].value_counts()
+            
+            # Filter to show only the specific dispositions we want
+            key_dispositions = ['Dead Call', 'Decision Maker - NYI', 'Wrong Number', 'Unknown']
+            filtered_counts = {disp: disposition_counts.get(disp, 0) for disp in key_dispositions}
+            
+            # Filter out zero values for cleaner chart
+            filtered_counts = {k: v for k, v in filtered_counts.items() if v > 0}
+            
+            if filtered_counts:
+                fig_pie = px.pie(
+                    values=list(filtered_counts.values()),
+                    names=list(filtered_counts.keys()),
+                    title=f'Total Calls by Disposition ({len(filtered_df)} total)',
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_pie.update_layout(height=400)
+                st.plotly_chart(fig_pie, use_container_width=True)
+                
+                # Aya's Idea component positioned under the chart
+                st.markdown(
+                    """
+                    <div style="
+                        text-align: center;
+                        margin-top: 5px;
+                        margin-left: 120px;
+                        padding: 8px 12px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border-radius: 20px;
+                        color: white;
+                        font-size: 14px;
+                        font-weight: bold;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                        animation: bounce 2s infinite;
+                        display: inline-block;
+                    ">
+                        💡 Aya's Idea ↑
+                    </div>
+                    
+                    <style>
+                    @keyframes bounce {
+                        0%, 20%, 50%, 80%, 100% {
+                            transform: translateY(0);
+                        }
+                        40% {
+                            transform: translateY(-5px);
+                        }
+                        60% {
+                            transform: translateY(-3px);
+                        }
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info("No calls to display in chart")
     else:
         st.write("No flagged calls found for the selected filters.")
 
     # Download buttons
     if not agent_summary.empty:
-        st.download_button("⬇️ Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
+        st.download_button("Download Agent Summary", agent_summary.to_csv(index=False).encode('utf-8'), "agent_summary_flags.csv", "text/csv")
     if not flagged_calls.empty:
-        st.download_button("⬇️ Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
+        st.download_button("Download Flagged Calls", flagged_calls.to_csv(index=False).encode('utf-8'), "call_log_with_flags.csv", "text/csv")
     if not filtered_df.empty:
-        st.download_button("⬇️ Download All Filtered Data", filtered_df.to_csv(index=False).encode('utf-8'), "filtered_call_log.csv", "text/csv")
+        st.download_button("Download All Filtered Data", filtered_df.to_csv(index=False).encode('utf-8'), "filtered_call_log.csv", "text/csv")
 else:
     st.info("Please upload your exported call log CSV file to start the audit.")
 
@@ -218,19 +312,19 @@ st.markdown(
         box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
         animation: fadeIn 2s ease-in-out;
     ">
-        ✨ App developed by <strong>Mohamed Abdo NUMBER ONE ☝🏻</strong></a> ✨
+        App developed by <strong>Mohamed Abdo NUMBER ONE</strong>
     </div>
 
     <style>
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-    a.dev-link:hover {
+    @keyframes fadeIn {{
+        0% {{ opacity: 0; transform: translateY(20px); }}
+        100% {{ opacity: 1; transform: translateY(0); }}
+    }}
+    a.dev-link:hover {{
         color: #ffeb3b !important;
         text-decoration: none !important;
         cursor: pointer;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True

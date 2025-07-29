@@ -28,16 +28,16 @@ time.sleep(3)
 driver.find_element(By.NAME, "email").send_keys(EMAIL)
 driver.find_element(By.NAME, "password").send_keys(PASSWORD)
 driver.find_element(By.NAME, "password").send_keys(Keys.RETURN)
-print("🔐 Logging in...")
+print("Logging in...")
 time.sleep(10)
 
 # === NAVIGATE TO RECORDINGS ===
-print("📁 Navigating to Call Recordings page...")
+print("Navigating to Call Recordings page...")
 driver.get("https://resva.readymode.com/login_new/?then=/")  # change this if needed
 time.sleep(10)
 
 # === DOWNLOAD FILES ===
-print("⬇️ Starting downloads...")
+print("Starting downloads...")
 recordings = driver.find_elements(By.CSS_SELECTOR, "a[href$='.mp3']")
 
 if not os.path.exists(DOWNLOAD_DIR):
@@ -46,8 +46,8 @@ if not os.path.exists(DOWNLOAD_DIR):
 for i, rec in enumerate(recordings):
     url = rec.get_attribute("href")
     driver.execute_script("window.open(arguments[0]);", url)
-    print(f"✅ Downloading call {i+1}/{len(recordings)}")
+    print(f"Downloading call {i+1}/{len(recordings)}")
     time.sleep(2)  # Give it time to download
 
-print("🎉 Done downloading all calls.")
+print("Done downloading all calls.")
 driver.quit()
